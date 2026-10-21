@@ -1,0 +1,789 @@
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#071b3a">
+<title>Formify 3D | Cotizador de impresión 3D</title>
+
+<style>
+:root{
+  --bg:#071426;--panel:#101f35;--panel2:#172a44;
+  --border:#2b4567;--blue:#168bff;--cyan:#22c7f4;
+  --text:#f4f8ff;--muted:#a9bbd2;--green:#45e0a0
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif;line-height:1.5}
+button,input,select{font:inherit}
+header{text-align:center;padding:22px 15px 27px;background:linear-gradient(130deg,#06152c,#0b3261,#075c87);border-bottom:1px solid #24476a}
+.brand{width:min(100%,310px);height:140px;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px}
+.brand svg{width:90px;height:82px}
+.brand-name{font-size:clamp(30px,6vw,42px);font-weight:900;letter-spacing:-2px;color:#21b9ff}
+.brand-name span{color:#f5faff}
+header h1{font-size:clamp(21px,4vw,30px);margin:10px 0 5px}
+header p{max-width:680px;margin:auto;color:#c0d7ef;font-size:14px}
+main{width:min(1200px,95%);margin:25px auto 50px}
+.layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr);gap:20px;align-items:start}
+.card{background:var(--panel);border:1px solid var(--border);padding:20px;border-radius:16px;margin-bottom:18px;min-width:0}
+.card h2{font-size:19px;margin:0 0 17px}
+.card h3{font-size:15px;color:var(--cyan);margin:20px 0 10px}
+.field{margin-bottom:14px;min-width:0}
+label{display:block;font-size:13px;color:#d1dfef;margin-bottom:6px}
+input,select{width:100%;min-width:0;background:#091629;color:white;border:1px solid var(--border);border-radius:9px;padding:11px}
+input:focus,select:focus{outline:1px solid var(--blue);border-color:var(--blue)}
+.btn{padding:11px 14px;border:1px solid var(--border);border-radius:10px;color:white;background:var(--panel2);font-weight:bold;cursor:pointer}
+.btn-primary{background:linear-gradient(100deg,#087cff,#18b8ee);color:white;border:0}
+.btn:hover{filter:brightness(1.13)}
+.toolbar{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:18px}
+.dropzone{display:flex;flex-direction:column;align-items:center;text-align:center;gap:9px;padding:28px 15px;border:2px dashed #3675ae;background:#0b1c32;border-radius:14px;cursor:pointer}
+.dropzone:hover,.dropzone.drag{background:#102d4b;border-color:var(--cyan)}
+.drop-icon{font-size:40px}
+.dropzone strong{font-size:16px}
+#fileInput{display:none}
+.file-name{overflow-wrap:anywhere;color:var(--cyan);font-size:13px}
+.viewer{width:100%;height:340px;background:radial-gradient(ellipse,#173452,#081322 75%);border:1px solid var(--border);border-radius:12px;overflow:hidden;position:relative}
+#viewerCanvas{width:100%;height:100%;display:block;touch-action:none}
+.viewer-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);text-align:center;padding:20px;pointer-events:none}
+.viewer-empty strong{font-size:17px;color:#d8eaff;margin-bottom:6px}
+.viewer-status{font-size:11px;margin-top:9px;color:var(--muted);overflow-wrap:anywhere}
+.file-info{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.info{background:var(--panel2);padding:11px;border-radius:9px;min-width:0}
+.info span{display:block;color:var(--muted);font-size:11px}
+.info strong{display:block;margin-top:3px;overflow-wrap:anywhere;font-size:14px}
+.pricebox{background:linear-gradient(140deg,#0b4261,#0b3246);border:1px solid #176d86;padding:20px;border-radius:13px;margin-bottom:14px}
+.pricebox .caption{font-size:12px;color:#b9eaf7}
+.price{font-size:clamp(32px,5vw,43px);font-weight:900;overflow-wrap:anywhere;margin:5px 0}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.metric{background:var(--panel2);padding:13px;border-radius:10px}
+.metric span{display:block;font-size:12px;color:var(--muted)}
+.metric strong{display:block;font-size:18px;margin-top:4px;overflow-wrap:anywhere}
+.rowline{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
+.rowline span{color:#c5d4e8}
+.rowline strong{text-align:right}
+.total{font-size:16px;font-weight:bold;border:0}
+.notice{padding:12px;background:#0a1728;border:1px solid var(--border);border-radius:9px;color:var(--muted);font-size:12px;margin-top:15px}
+.hint,small{font-size:12px;color:var(--muted)}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
+@media(max-width:850px){.layout{grid-template-columns:1fr}.results{order:-1}}
+@media(max-width:450px){.grid2{grid-template-columns:1fr;gap:0}.card{padding:15px}.viewer{height:270px}.file-info{grid-template-columns:1fr 1fr}}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media print{
+  body{background:white;color:#111}
+  header{background:white;color:#102c52;border-bottom:2px solid #168bff}
+  header p{color:#444}
+  main{width:100%;margin:0}
+  .layout{display:block}
+  .card,.pricebox,.metric{background:white;color:#111;border:1px solid #ccc;break-inside:avoid}
+  .rowline span,.metric span,.pricebox .caption,.notice,.hint,.viewer-status{color:#444}
+  .toolbar,.no-print,.upload-card,.viewer-card,footer{display:none!important}
+  input,select{background:white;color:#111;border:1px solid #ccc}
+  .price{color:#0756a1}
+  .brand-name span{color:#111}
+  .results{display:block}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand" aria-label="Formify 3D">
+    <svg viewBox="0 0 120 100" role="img" aria-label="Impresora 3D">
+      <defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#19c5ff"/><stop offset="1" stop-color="#0757d8"/></linearGradient></defs>
+      <rect x="10" y="10" width="100" height="10" rx="5" fill="#168bff"/>
+      <rect x="18" y="22" width="84" height="7" rx="3" fill="#20c8ff"/>
+      <rect x="42" y="7" width="36" height="34" rx="5" fill="url(#g)" stroke="#75dfff"/>
+      <path d="M49 41 H71 L65 53 H55 Z" fill="#20c8ff"/>
+      <path d="M22 63 L60 43 L98 63 L60 84 Z" fill="url(#g)"/>
+      <path d="M22 63 L60 84 V95 L22 74 Z" fill="#0a4cbb"/>
+      <path d="M60 84 L98 63 V74 L60 95 Z" fill="#158cff"/>
+      <path d="M38 63 L60 52 L82 63 L60 75 Z" fill="#071426" stroke="#d5f7ff" stroke-width="2"/>
+      <path d="M49 63 L60 58 L71 63 L60 69 Z" fill="#18baff"/>
+    </svg>
+    <div class="brand-name"><span>Formify</span>3D</div>
+  </div>
+  <h1>Cotizador de impresión 3D</h1>
+  <p>Sube tu modelo, configura tu impresión y obtén una cotización estimada para tu proyecto.</p>
+</header>
+
+<main>
+  <div class="toolbar no-print">
+    <button class="btn btn-primary" onclick="generarPDF()">📄 Generar cotización PDF</button>
+    <button class="btn" onclick="limpiar()">↻ Nueva cotización</button>
+  </div>
+
+  <div class="layout">
+    <section>
+      <div class="card upload-card">
+        <h2>📁 1. Carga tu modelo 3D</h2>
+        <label for="fileInput" class="dropzone" id="dropzone">
+          <span class="drop-icon">🧊</span>
+          <strong>Selecciona o arrastra tu archivo 3D</strong>
+          <span class="hint">STL, OBJ y PLY ASCII</span>
+          <span class="btn btn-primary">Seleccionar archivo</span>
+          <span class="file-name" id="fileName">Ningún archivo seleccionado</span>
+        </label>
+        <input id="fileInput" type="file" accept=".stl,.obj,.ply">
+        <div class="notice">Admite STL, OBJ y PLY ASCII en modo local, sin librerías externas. Para otros formatos, exporta el modelo a STL u OBJ.</div>
+      </div>
+
+      <div class="card viewer-card">
+        <h2>🧩 2. Vista previa del modelo</h2>
+        <div class="viewer" id="viewer">
+          <canvas id="viewerCanvas"></canvas>
+          <div class="viewer-empty" id="viewerEmpty">
+            <strong>Tu modelo aparecerá aquí</strong>
+            <span>Arrastra para rotar · Rueda para acercar o alejar</span>
+          </div>
+        </div>
+        <div class="toolbar no-print" style="margin-top:10px;margin-bottom:0">
+          <button class="btn" onclick="zoom*=0.5;zoom=Math.max(0.01,zoom);drawModel()">➖ Alejar</button>
+          <button class="btn" onclick="zoom=Math.min(5,zoom*2);drawModel()">➕ Acercar</button>
+          <button class="btn" onclick="zoom=1;rotX=-0.45;rotY=0.65;drawModel()">↻ Restablecer vista</button>
+          <button class="btn" onclick="ajustarVista()">Vista completa</button>
+        </div>
+        <div class="viewer-status" id="viewerStatus">Esperando un modelo 3D.</div>
+        <div class="file-info">
+          <div class="info"><span>Formato</span><strong id="fileFormat">—</strong></div>
+          <div class="info"><span>Tamaño del archivo</span><strong id="fileSize">—</strong></div>
+          <div class="info"><span>Volumen geométrico</span><strong id="volume">Pendiente</strong></div>
+        </div>
+        <div class="notice">El volumen geométrico no equivale al material que consumirá la impresión. El relleno, las paredes, los soportes y el laminado modifican el consumo real.</div>
+      </div>
+
+      <div class="card">
+        <h2>⚙️ 3. Configuración de impresión</h2>
+        <div class="grid2">
+          <div class="field"><label for="material">Material</label>
+            <select id="material">
+              <option value="PLA">PLA</option><option value="PLA+">PLA+</option>
+              <option value="PETG">PETG</option><option value="ABS">ABS</option>
+              <option value="TPU">TPU flexible</option><option value="RESINA">Resina</option>
+            </select>
+          </div>
+          <div class="field"><label for="color">Color</label>
+            <select id="color">
+              <option>Negro</option><option>Blanco</option><option>Azul</option>
+              <option>Rojo</option><option>Verde</option><option>Amarillo</option>
+              <option>Gris</option><option>Transparente</option><option>Otro / consultar</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="field"><label for="calidad">Calidad de impresión</label>
+            <select id="calidad">
+              <option value="draft">Borrador (0.28 mm)</option>
+              <option value="normal" selected>Estándar (0.20 mm)</option>
+              <option value="fine">Alta (0.12 mm)</option>
+            </select>
+          </div>
+          <div class="field"><label for="relleno">Relleno interno</label>
+            <select id="relleno">
+              <option value="10">10%</option><option value="15">15%</option>
+              <option value="20" selected>20%</option><option value="30">30%</option>
+              <option value="50">50%</option><option value="80">80%</option><option value="100">100%</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="field"><label for="cantidad">Cantidad de piezas</label><input id="cantidad" type="number" min="1" max="500" value="1"></div>
+          <div class="field"><label for="soportes">Soportes</label>
+            <select id="soportes">
+              <option value="0">No requeridos</option><option value="10">Pocos (+10%)</option>
+              <option value="25">Moderados (+25%)</option><option value="40">Muchos (+40%)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field"><label for="acabado">Acabado por pieza ($ MXN)</label>
+          <input id="acabado" type="number" min="0" step="1" value="0">
+          <small>Ejemplo: limpieza, lijado o acabado detallado.</small>
+        </div>
+
+        <div class="field"><label for="gramos">Material estimado por pieza (gramos)</label><input id="gramos" type="number" min="0" step="0.1" placeholder="Dato del laminador"></div>
+        <div class="field"><label for="tiempo">Tiempo base por pieza (horas, antes de duplicar)</label><input id="tiempo" type="number" min="0" step="0.1" placeholder="Dato del laminador"></div>
+        <div class="field"><label for="notas">Detalles adicionales</label><input id="notas" type="text" placeholder="Nombre personalizado, uso especial..."></div>
+
+        <h3>💰 Costos y mano de obra</h3>
+        <div class="grid2">
+          <div class="field"><label for="costoGramo">Costo del material ($/g)</label><input id="costoGramo" type="number" min="0" step="0.01" value="0.30"></div>
+          <div class="field"><label for="tarifaHora">Tarifa de impresión ($/h)</label><input id="tarifaHora" type="number" min="0" step="0.5" value="7"></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label for="manoObra">Mano de obra ($/h)</label><input id="manoObra" type="number" min="0" step="1" value="50"></div>
+          <div class="field"><label for="horasManoObra">Horas de mano de obra por pieza</label><input id="horasManoObra" type="number" min="0" step="0.1" value="0.25"></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label for="electricidad">Electricidad ($/pedido)</label><input id="electricidad" type="number" min="0" step="1" value="5"></div>
+          <div class="field"><label for="mantenimiento">Mantenimiento ($/h impresión)</label><input id="mantenimiento" type="number" min="0" step="0.5" value="3"></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label for="empaque">Empaque ($/pedido)</label><input id="empaque" type="number" min="0" step="1" value="10"></div>
+          <div class="field"><label for="otrosCostos">Otros costos ($/pedido)</label><input id="otrosCostos" type="number" min="0" step="1" value="0"></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label for="ganancia">Margen sobre costos (%)</label><input id="ganancia" type="number" min="0" max="500" step="1" value="30"></div>
+          <div class="field"><label for="descuento">Descuento (%)</label><input id="descuento" type="number" min="0" max="100" step="1" value="0"></div>
+        </div>
+
+        <button class="btn btn-primary" style="width:100%" onclick="calcular()">Actualizar cotización</button>
+      </div>
+
+      <div class="card">
+        <h2>👤 4. Datos de contacto</h2>
+        <div class="field"><label for="cliente">Nombre del cliente</label><input id="cliente" placeholder="Nombre completo"></div>
+        <div class="grid2">
+          <div class="field"><label for="correo">Correo electrónico (opcional)</label><input id="correo" type="email" placeholder="correo@ejemplo.com"></div>
+          <div class="field"><label for="vigencia">Vigencia</label>
+            <select id="vigencia"><option value="7">7 días</option><option value="15" selected>15 días</option><option value="30">30 días</option></select>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="results">
+      <div class="card">
+        <h2>💎 Tu cotización Formify 3D</h2>
+        <div class="pricebox">
+          <div class="caption">PRECIO FINAL ESTIMADO</div>
+          <div class="price" id="precio">$0.00 MXN</div>
+          <div class="caption" id="precioUnitario">Precio por pieza: $0.00 MXN</div>
+        </div>
+        <div class="metrics">
+          <div class="metric"><span>Cantidad</span><strong id="rCantidad">1</strong></div>
+          <div class="metric"><span>Material</span><strong id="rMaterial">PLA</strong></div>
+          <div class="metric"><span>Filamento estimado</span><strong id="rGramos">—</strong></div>
+          <div class="metric"><span>Tiempo duplicado</span><strong id="rTiempo">—</strong></div>
+        </div>
+
+        <h3>Desglose de costos</h3>
+        <div class="rowline"><span>Material</span><strong id="rMaterialCost">$0.00</strong></div>
+        <div class="rowline"><span>Impresión</span><strong id="rPrintingCost">$0.00</strong></div>
+        <div class="rowline"><span>Mantenimiento</span><strong id="rMaintenance">$0.00</strong></div>
+        <div class="rowline"><span>Mano de obra</span><strong id="rLabor">$0.00</strong></div>
+        <div class="rowline"><span>Acabado</span><strong id="rAcabado">$0.00</strong></div>
+        <div class="rowline"><span>Electricidad</span><strong id="rElectricity">$0.00</strong></div>
+        <div class="rowline"><span>Empaque</span><strong id="rPackaging">$0.00</strong></div>
+        <div class="rowline"><span>Otros costos</span><strong id="rOthers">$0.00</strong></div>
+        <div class="rowline"><span>Costos directos</span><strong id="rDirect">$0.00</strong></div>
+        <div class="rowline"><span>Ganancia</span><strong id="rProfit">$0.00</strong></div>
+        <div class="rowline"><span>Descuento</span><strong id="rDiscount">$0.00</strong></div>
+        <div class="rowline total"><span>Total estimado</span><strong id="rTotal">$0.00</strong></div>
+
+        <div class="notice"><strong>Importante:</strong> el precio es estimativo. El consumo real de filamento y el tiempo de impresión deben verificarse con el laminador. La tarifa por hora de impresión, el mantenimiento y la mano de obra son conceptos independientes configurables.</div>
+        <button class="btn btn-primary no-print" style="width:100%;margin-top:16px" onclick="generarPDF()">Generar cotización PDF</button>
+      </div>
+    </section>
+  </div>
+</main>
+<footer>© <span id="year"></span> Formify 3D · Cotizador de impresión 3D</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+
+let modelTriangles = [], fileName = '', modelBounds = null, volumeCm3 = null, lastQuote = null;
+let rotX = -0.45, rotY = 0.65, zoom = 1, dragging = false, lastX = 0, lastY = 0;
+
+const canvas = $('viewerCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas(){
+  const r = $('viewer').getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  if(!r.width || !r.height) return;
+  canvas.width = Math.round(r.width*dpr);
+  canvas.height = Math.round(r.height*dpr);
+  canvas.style.width = r.width+'px';
+  canvas.style.height = r.height+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  drawModel();
+}
+window.addEventListener('resize',resizeCanvas);
+window.addEventListener('load',resizeCanvas);
+
+function drawModel(){
+  const r = $('viewer').getBoundingClientRect();
+  if(!r.width || !r.height) return;
+  ctx.clearRect(0,0,r.width,r.height);
+
+  const grad = ctx.createRadialGradient(r.width*.5,r.height*.45,5,r.width*.5,r.height*.45,Math.max(r.width,r.height)*.7);
+  grad.addColorStop(0,'#173452');
+  grad.addColorStop(1,'#081322');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,r.width,r.height);
+
+  ctx.strokeStyle='#20364c';
+  ctx.lineWidth=1;
+  for(let i=-5;i<=5;i++){
+    let x=r.width/2+i*Math.min(r.width,r.height)/14;
+    ctx.beginPath();
+    ctx.moveTo(x,r.height*.25);
+    ctx.lineTo(x,r.height*.85);
+    ctx.stroke();
+  }
+
+  if(!modelTriangles.length) return;
+
+  const pts = modelTriangles.flat();
+  const projected = pts.map(p=>{
+    let x=p[0],y=p[1],z=p[2];
+    let yy=y*Math.cos(rotX)-z*Math.sin(rotX);
+    let zz=y*Math.sin(rotX)+z*Math.cos(rotX);
+    y=yy;z=zz;
+
+    let xx=x*Math.cos(rotY)+z*Math.sin(rotY);
+    zz=-x*Math.sin(rotY)+z*Math.cos(rotY);
+    x=xx;z=zz;
+
+    const scale=Math.min(r.width,r.height)*.35*zoom;
+    return {x:r.width/2+x*scale,y:r.height*.54-y*scale,z};
+  });
+
+  const faces=[];
+  for(let i=0;i<projected.length;i+=3){
+    const a=projected[i],b=projected[i+1],c=projected[i+2];
+    if(a&&b&&c) faces.push({a,b,c,z:(a.z+b.z+c.z)/3});
+  }
+  faces.sort((a,b)=>a.z-b.z);
+
+  for(const f of faces){
+    ctx.beginPath();
+    ctx.moveTo(f.a.x,f.a.y);
+    ctx.lineTo(f.b.x,f.b.y);
+    ctx.lineTo(f.c.x,f.c.y);
+    ctx.closePath();
+    ctx.fillStyle='#168bff';
+    ctx.globalAlpha=.82;
+    ctx.fill();
+    ctx.globalAlpha=1;
+    ctx.strokeStyle='#65d5ff';
+    ctx.lineWidth=.45;
+    ctx.stroke();
+  }
+}
+
+function ajustarVista(){
+  zoom=1;
+  rotX=-0.45;
+  rotY=0.65;
+  drawModel();
+}
+
+canvas.addEventListener('pointerdown',e=>{
+  dragging=true;
+  lastX=e.clientX;
+  lastY=e.clientY;
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove',e=>{
+  if(!dragging)return;
+  rotY+=(e.clientX-lastX)*.01;
+  rotX+=(e.clientY-lastY)*.01;
+  lastX=e.clientX;
+  lastY=e.clientY;
+  drawModel();
+});
+canvas.addEventListener('pointerup',()=>dragging=false);
+canvas.addEventListener('pointercancel',()=>dragging=false);
+canvas.addEventListener('wheel',e=>{
+  e.preventDefault();
+  zoom=Math.max(.01,Math.min(5,zoom*(e.deltaY<0?1.15:.75)));
+  drawModel();
+},{passive:false});
+
+function parseSTL(buffer){
+  const dv=new DataView(buffer),triangles=[];
+  if(buffer.byteLength>=84){
+    const count=dv.getUint32(80,true);
+    if(84+count*50<=buffer.byteLength){
+      let o=84;
+      for(let i=0;i<count;i++){
+        o+=12;
+        const tri=[];
+        for(let j=0;j<3;j++){
+          tri.push([dv.getFloat32(o,true),dv.getFloat32(o+4,true),dv.getFloat32(o+8,true)]);
+          o+=12;
+        }
+        o+=2;
+        triangles.push(tri);
+      }
+      if(triangles.length)return triangles;
+    }
+  }
+  const text=new TextDecoder().decode(buffer);
+  const re=/vertex\s+([-+\deE.]+)\s+([-+\deE.]+)\s+([-+\deE.]+)/gi;
+  let m,tri=[];
+  while((m=re.exec(text))){
+    tri.push([+m[1],+m[2],+m[3]]);
+    if(tri.length===3){triangles.push(tri);tri=[];}
+  }
+  return triangles;
+}
+
+function parseOBJ(text){
+  const verts=[],tris=[];
+  for(const line of text.split(/\r?\n/)){
+    const t=line.trim().split(/\s+/);
+    if(t[0]==='v'&&t.length>=4)verts.push([+t[1],+t[2],+t[3]]);
+    if(t[0]==='f'&&t.length>=4){
+      const ids=t.slice(1).map(x=>{
+        let i=parseInt(x.split('/')[0],10);
+        return i<0?verts.length+i:i-1;
+      });
+      for(let j=1;j<ids.length-1;j++){
+        if(verts[ids[0]]&&verts[ids[j]]&&verts[ids[j+1]]){
+          tris.push([verts[ids[0]],verts[ids[j]],verts[ids[j+1]]]);
+        }
+      }
+    }
+  }
+  return tris;
+}
+
+function parsePLY(text){
+  const split=text.indexOf('end_header');
+  if(split<0)throw Error('No se encontró la cabecera PLY.');
+  const header=text.slice(0,split).split(/\r?\n/);
+  if(!header.some(x=>x.includes('format ascii')))throw Error('El archivo debe ser PLY ASCII.');
+  let nv=0,nf=0;
+  for(const l of header){
+    let m=l.match(/^element vertex (\d+)/);
+    if(m)nv=+m[1];
+    m=l.match(/^element face (\d+)/);
+    if(m)nf=+m[1];
+  }
+  const lines=text.slice(split+'end_header'.length).trim().split(/\r?\n/);
+  const v=lines.slice(0,nv).map(l=>l.trim().split(/\s+/).slice(0,3).map(Number));
+  const tris=[];
+  for(const l of lines.slice(nv,nv+nf)){
+    const a=l.trim().split(/\s+/).map(Number);
+    const ids=a.slice(1,a[0]+1);
+    for(let j=1;j<ids.length-1;j++){
+      if(v[ids[0]]&&v[ids[j]]&&v[ids[j+1]])tris.push([v[ids[0]],v[ids[j]],v[ids[j+1]]]);
+    }
+  }
+  return tris;
+}
+
+function addModel(tris){
+  if(!tris.length)throw Error('El archivo no contiene triángulos visibles.');
+  let min=[Infinity,Infinity,Infinity],max=[-Infinity,-Infinity,-Infinity];
+  tris.flat().forEach(p=>p.forEach((v,i)=>{
+    min[i]=Math.min(min[i],v);
+    max[i]=Math.max(max[i],v);
+  }));
+
+  const size=max.map((v,i)=>v-min[i]);
+  const maxDim=Math.max(...size)||1;
+  const scale=100/maxDim;
+
+  modelTriangles=tris.map(t=>t.map(p=>[
+    (p[0]-(min[0]+max[0])/2)*scale,
+    (p[1]-min[1])*scale,
+    (p[2]-(min[2]+max[2])/2)*scale
+  ]));
+
+  modelBounds=size.map(v=>v*scale);
+  rotX=-0.45;rotY=0.65;zoom=1;
+
+  let vol=0;
+  for(const t of modelTriangles){
+    const [a,b,c]=t;
+    vol+=(a[0]*(b[1]*c[2]-b[2]*c[1])+
+          a[1]*(b[2]*c[0]-b[0]*c[2])+
+          a[2]*(b[0]*c[1]-b[1]*c[0]))/6;
+  }
+  volumeCm3=Math.abs(vol)/1000;
+
+  $('viewerEmpty').style.display='none';
+  $('viewerStatus').textContent='Modelo cargado. Arrastra para rotar y usa la rueda para acercar o alejar.';
+  $('volume').textContent=volumeCm3>0?volumeCm3.toFixed(2)+' cm³ aprox.':'No disponible';
+  drawModel();
+  calcular();
+}
+
+async function loadFile(file){
+  if(!file)return;
+  fileName=file.name;
+  $('fileName').textContent=file.name;
+  $('fileFormat').textContent=file.name.split('.').pop().toUpperCase();
+  $('fileSize').textContent=file.size<1048576
+    ?(file.size/1024).toFixed(1)+' KB'
+    :(file.size/1048576).toFixed(2)+' MB';
+  $('viewerStatus').textContent='Cargando modelo...';
+  $('volume').textContent='Analizando...';
+
+  try{
+    const ext=file.name.split('.').pop().toLowerCase();
+    let tris;
+    if(ext==='stl')tris=parseSTL(await file.arrayBuffer());
+    else if(ext==='obj')tris=parseOBJ(await file.text());
+    else if(ext==='ply')tris=parsePLY(await file.text());
+    else throw Error('Formato no admitido. Convierte el archivo a STL, OBJ o PLY ASCII.');
+    addModel(tris);
+  }catch(err){
+    console.error(err);
+    $('viewerStatus').textContent='No se pudo cargar: '+err.message;
+    $('viewerEmpty').style.display='flex';
+    $('viewerEmpty').innerHTML='<strong>No fue posible mostrar el modelo</strong><span>'+err.message+'</span>';
+    $('volume').textContent='No disponible';
+  }
+}
+
+$('fileInput').addEventListener('change',e=>loadFile(e.target.files&&e.target.files[0]));
+
+const drop=$('dropzone');
+drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('drag');});
+drop.addEventListener('dragleave',()=>drop.classList.remove('drag'));
+drop.addEventListener('drop',e=>{
+  e.preventDefault();
+  drop.classList.remove('drag');
+  const f=e.dataTransfer.files[0];
+  if(f)loadFile(f);
+});
+
+function n(id){
+  const value=Number($(id).value);
+  return Number.isFinite(value)?Math.max(0,value):0;
+}
+
+function money(value){
+  return new Intl.NumberFormat('es-MX',{
+    style:'currency',currency:'MXN'
+  }).format(Number.isFinite(value)?value:0);
+}
+
+function calcular(){
+  const quantity=Math.max(1,Math.min(500,Math.floor(n('cantidad')||1)));
+  const material=$('material').value;
+  const enteredGrams=n('gramos');
+
+  const grams=enteredGrams>0?enteredGrams:
+    (volumeCm3!==null&&volumeCm3>0
+      ?volumeCm3*1.24*(0.15+n('relleno')/100)*1.8
+      :25);
+
+  const qualityFactor={draft:0.8,normal:1,fine:1.6}[$('calidad').value];
+  const infillFactor=0.75+n('relleno')/100;
+  const supportFactor=1+n('soportes')/100;
+  const gramsAdjusted=grams*supportFactor;
+
+  // Se duplica el tiempo base tanto manual como automático.
+  const baseHours=n('tiempo')>0?n('tiempo'):
+    Math.max(0.5,gramsAdjusted/8*qualityFactor*infillFactor);
+  const hoursPerPiece=baseHours*2;
+  const totalHours=hoursPerPiece*quantity;
+  const totalGrams=gramsAdjusted*quantity;
+
+  const materialCost=n('costoGramo')*totalGrams;
+  const printingCost=n('tarifaHora')*totalHours;
+  const maintenanceCost=n('mantenimiento')*totalHours;
+  const laborHours=n('horasManoObra')*quantity;
+  const laborCost=n('manoObra')*laborHours;
+  const finishing=n('acabado')*quantity;
+  const electricity=n('electricidad');
+  const packaging=n('empaque');
+  const otherCosts=n('otrosCostos');
+
+  const directCosts=materialCost+printingCost+maintenanceCost+
+    laborCost+finishing+electricity+packaging+otherCosts;
+
+  const profitMargin=Math.min(500,n('ganancia'))/100;
+  const discountRate=Math.min(100,n('descuento'))/100;
+  const profit=directCosts*profitMargin;
+  const subtotal=directCosts+profit;
+  const discountAmount=subtotal*discountRate;
+  const total=subtotal-discountAmount;
+
+  lastQuote={
+    fileName:fileName||'Sin archivo cargado',
+    material,quantity,grams:totalGrams,hours:totalHours,
+    hoursPerPiece,printTotal:materialCost+printingCost+maintenanceCost,
+    materialCost,printingCost,maintenanceCost,laborCost,laborHours,
+    finishing,electricity,packaging,otherCosts,
+    preparation:electricity+packaging+otherCosts,
+    directCosts,profit,profitMargin:profitMargin*100,
+    discountAmount,discountRate:discountRate*100,total,unit:total/quantity,
+    color:$('color').value,
+    quality:$('calidad').selectedOptions[0].text,
+    infill:$('relleno').value+'%',
+    supports:$('soportes').selectedOptions[0].text,
+    notes:$('notas').value.trim(),
+    client:$('cliente').value.trim(),
+    email:$('correo').value.trim(),
+    vigencia:n('vigencia')||15,
+    dimensions:$('volume').textContent
+  };
+
+  $('precio').textContent=money(total);
+  $('precioUnitario').textContent='Precio por pieza: '+money(total/quantity);
+  $('rCantidad').textContent=quantity;
+  $('rMaterial').textContent=material;
+  $('rGramos').textContent=totalGrams.toFixed(1)+' g';
+  $('rTiempo').textContent=formatTime(totalHours);
+
+  $('rMaterialCost').textContent=money(materialCost);
+  $('rPrintingCost').textContent=money(printingCost);
+  $('rMaintenance').textContent=money(maintenanceCost);
+  $('rLabor').textContent=money(laborCost);
+  $('rAcabado').textContent=money(finishing);
+  $('rElectricity').textContent=money(electricity);
+  $('rPackaging').textContent=money(packaging);
+  $('rOthers').textContent=money(otherCosts);
+  $('rDirect').textContent=money(directCosts);
+  $('rProfit').textContent=money(profit);
+  $('rDiscount').textContent='-'+money(discountAmount);
+  $('rTotal').textContent=money(total);
+}
+
+function formatTime(hours){
+  const mins=Math.round(hours*60);
+  const h=Math.floor(mins/60),m=mins%60;
+  return h?`${h} h ${m} min`:`${m} min`;
+}
+
+window.calcular=calcular;
+
+window.generarPDF=function(){
+  calcular();
+  const q=lastQuote;
+  const date=new Date();
+  const dateStr=date.toLocaleDateString('es-MX');
+  const expiry=new Date(date);
+  expiry.setDate(expiry.getDate()+q.vigencia);
+  const expiryStr=expiry.toLocaleDateString('es-MX');
+
+  const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+
+  const printWindow=window.open('','_blank');
+  if(!printWindow){
+    alert('Permite las ventanas emergentes para generar el PDF.');
+    return;
+  }
+
+  const folio='F3D-'+date.getFullYear()+
+    String(date.getMonth()+1).padStart(2,'0')+
+    String(date.getDate()).padStart(2,'0')+'-'+
+    Math.floor(Math.random()*9000+1000);
+
+  printWindow.document.write(`<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8">
+<title>Cotización Formify 3D</title>
+<style>
+body{font-family:Arial,sans-serif;color:#14233a;margin:35px}
+header{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #168bff;padding-bottom:16px}
+.brand{font-size:28px;font-weight:900;color:#087fe5;letter-spacing:-1px}
+.brand span{color:#10284a}
+.subtitle{font-size:12px;color:#60728a}
+h1{font-size:24px;margin:25px 0 5px}
+.muted{color:#60728a;font-size:12px}
+.info{margin:20px 0;padding:14px;background:#f1f7fc;border-radius:9px;line-height:1.8}
+table{width:100%;border-collapse:collapse;margin-top:20px}
+td,th{padding:10px;text-align:left;border-bottom:1px solid #d9e3ee}
+th{background:#eff6fc}
+.right{text-align:right}
+.total{margin-top:25px;text-align:right;font-size:27px;font-weight:bold;color:#087fe5}
+.note{margin-top:25px;padding:13px;background:#f4f7fa;font-size:12px;line-height:1.6}
+footer{margin-top:35px;border-top:1px solid #d9e3ee;padding-top:12px;color:#60728a;font-size:11px}
+@media print{body{margin:15mm}}
+</style></head><body>
+<header>
+<div><div class="brand">Formify<span>3D</span></div>
+<div class="subtitle">Fabricación y personalización mediante impresión 3D</div></div>
+<div class="right"><strong>COTIZACIÓN</strong><br>
+<span class="muted">Folio: ${folio}</span><br>
+<span class="muted">Fecha: ${dateStr}</span><br>
+<span class="muted">Válida hasta: ${expiryStr}</span></div>
+</header>
+<h1>Propuesta de impresión 3D</h1>
+<div class="info">
+<strong>Cliente:</strong> ${safe(q.client||'No especificado')}<br>
+<strong>Correo:</strong> ${safe(q.email||'No especificado')}<br>
+<strong>Archivo:</strong> ${safe(q.fileName)}<br>
+<strong>Material:</strong> ${safe(q.material)} · <strong>Color:</strong> ${safe(q.color)}<br>
+<strong>Cantidad:</strong> ${q.quantity} pieza(s)<br>
+<strong>Calidad:</strong> ${safe(q.quality)} · <strong>Relleno:</strong> ${safe(q.infill)}<br>
+<strong>Soportes:</strong> ${safe(q.supports)}<br>
+<strong>Tiempo duplicado por pieza:</strong> ${formatTime(q.hoursPerPiece)}<br>
+<strong>Tiempo total estimado:</strong> ${formatTime(q.hours)}<br>
+<strong>Dimensiones / volumen:</strong> ${safe(q.dimensions)}
+</div>
+<table><thead><tr><th>Concepto</th><th class="right">Importe</th></tr></thead><tbody>
+<tr><td>Material (${q.grams.toFixed(1)} g)</td><td class="right">${money(q.materialCost)}</td></tr>
+<tr><td>Impresión (${formatTime(q.hours)})</td><td class="right">${money(q.printingCost)}</td></tr>
+<tr><td>Desgaste y mantenimiento</td><td class="right">${money(q.maintenanceCost)}</td></tr>
+<tr><td>Mano de obra (${q.laborHours.toFixed(2)} h)</td><td class="right">${money(q.laborCost)}</td></tr>
+<tr><td>Acabado</td><td class="right">${money(q.finishing)}</td></tr>
+<tr><td>Electricidad</td><td class="right">${money(q.electricity)}</td></tr>
+<tr><td>Empaque</td><td class="right">${money(q.packaging)}</td></tr>
+<tr><td>Otros costos</td><td class="right">${money(q.otherCosts)}</td></tr>
+<tr><td><strong>Costos directos</strong></td><td class="right"><strong>${money(q.directCosts)}</strong></td></tr>
+<tr><td>Ganancia (${q.profitMargin.toFixed(1)}%)</td><td class="right">${money(q.profit)}</td></tr>
+<tr><td>Descuento (${q.discountRate.toFixed(1)}%)</td><td class="right">-${money(q.discountAmount)}</td></tr>
+</tbody></table>
+${q.notes?`<p><strong>Detalles:</strong> ${safe(q.notes)}</p>`:''}
+<div class="total">Total estimado: ${money(q.total)}</div>
+<p class="right muted">Precio por pieza: ${money(q.unit)}</p>
+<div class="note"><strong>Condiciones de la cotización</strong><br>
+Esta cotización es estimativa y se basa en parámetros de referencia. El tiempo de impresión se multiplica por dos respecto al valor base introducido o calculado. El precio final puede variar según el laminado, la orientación, los soportes, el acabado, el material y la disponibilidad. La cotización no confirma automáticamente el pedido ni la fecha de entrega.</div>
+<footer>Formify 3D · Gracias por considerar nuestros servicios de impresión 3D.</footer>
+<script>window.onload=()=>setTimeout(()=>window.print(),400);<\/script>
+</body></html>`);
+  printWindow.document.close();
+};
+
+window.limpiar=function(){
+  if(!confirm('¿Deseas iniciar una nueva cotización?'))return;
+
+  const defaults={
+    cantidad:'1',material:'PLA',color:'Negro',calidad:'normal',
+    relleno:'20',soportes:'0',acabado:'0',gramos:'',tiempo:'',
+    notas:'',cliente:'',correo:'',vigencia:'15',
+    costoGramo:'0.30',tarifaHora:'7',manoObra:'50',
+    horasManoObra:'0.25',electricidad:'5',mantenimiento:'3',
+    empaque:'10',otrosCostos:'0',ganancia:'30',descuento:'0'
+  };
+
+  Object.entries(defaults).forEach(([id,value])=>$(id).value=value);
+
+  $('fileInput').value='';
+  fileName='';
+  $('fileName').textContent='Ningún archivo seleccionado';
+  $('fileFormat').textContent='—';
+  $('fileSize').textContent='—';
+  $('volume').textContent='Pendiente';
+  $('viewerStatus').textContent='Esperando un modelo 3D.';
+  $('viewerEmpty').style.display='flex';
+  $('viewerEmpty').innerHTML='<strong>Tu modelo aparecerá aquí</strong><span>Arrastra para rotar · Rueda para acercar o alejar</span>';
+  modelTriangles=[];
+  modelBounds=null;
+  volumeCm3=null;
+  zoom=1;
+  rotX=-0.45;
+  rotY=0.65;
+  drawModel();
+  calcular();
+};
+
+[
+  'material','color','calidad','relleno','cantidad','soportes',
+  'acabado','gramos','tiempo','notas','cliente','correo','vigencia',
+  'costoGramo','tarifaHora','manoObra','horasManoObra',
+  'electricidad','mantenimiento','empaque','otrosCostos',
+  'ganancia','descuento'
+].forEach(id=>{
+  $(id).addEventListener('input',calcular);
+  $(id).addEventListener('change',calcular);
+});
+
+$('year').textContent=new Date().getFullYear();
+resizeCanvas();
+calcular();
+</script>
+</body>
+</html>
+```
